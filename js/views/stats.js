@@ -1,0 +1,158 @@
+// ============================================================
+// STATS VIEW — equivalent to StatsView.swift
+// ============================================================
+
+import { StatsEngine } from '../statsEngine.js';
+import { emptyState, trendSymbol, trendClass } from './home.js';
+
+let selectedExercise = null;
+let chartMode = 'weight';
+let mainChart = null;
+
+export function renderStats(state) {
+  const { workouts } = state;
+  const names = StatsEngine.allNames(workouts);
+  const el = document.getElementById('page-stats');
+
+  if (names.length === 0) {
+    el.innerHTML = `
+      <div class="page-header"><h1>Estadísticas</h1></div>
+      ${emptyState('📊','Sin datos','Registra entrenamientos para ver estadísticas')}
+    `;
+    return;
+  }
+
+  if (!selectedExercise || !names.includes(selectedExercise)) selectedExercise = names[0];
+
+  el.innerHTML = `
+    <div class="page-header"><h1>Estadísticas</h1></div>
+    <div class="exercise-pill-row" id="stats-pills">
+      ${names.map(n => `<button class="exercise-pill ${n===selectedExercise?'selected':''}" data-name="${n}">${n}</button>`).join('')}
+    </div>
+    <div id="stats-tooltip"></div>
+    <div class="seg-control">
+      <button class="seg-btn ${chartMode==='weight'?'active':''}" data-mode="weight">Peso máx.</button>
+      <button class="seg-btn ${chartMode==='volume'?'active':''}" data-mode="volume">Volumen</button>
+    </div>
+    <div class="chart-container">
+      <div class="chart-title" id="chart-title">${chartMode==='weight'?'Peso máximo':'Volumen total'}</div>
+      <canvas id="main-chart"></canvas>
+    </div>
+    <div class="section-title">Todos los ejercicios</div>
+    <div id="stats-all">${names.map(n => allExRow(n, workouts)).join('')}</div>
+  `;
+
+  renderTooltip(workouts);
+  renderChart(workouts);
+
+  // Bind pills
+  el.querySelectorAll('.exercise-pill').forEach(pill => {
+    pill.addEventListener('click', () => {
+      selectedExercise = pill.dataset.name;
+      renderStats(state);
+    });
+  });
+
+  // Bind seg control
+  el.querySelectorAll('.seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      chartMode = btn.dataset.mode;
+      renderStats(state);
+    });
+  });
+
+  // Bind all-exercises rows
+  el.querySelectorAll('.workout-row[data-name]').forEach(row => {
+    row.addEventListener('click', () => {
+      selectedExercise = row.dataset.name;
+      document.getElementById('content').scrollTop = 0;
+      renderStats(state);
+    });
+  });
+}
+
+function renderTooltip(workouts) {
+  const name = selectedExercise;
+  const pr = StatsEngine.prWeight(name, workouts);
+  const prR = StatsEngine.prReps(name, workouts);
+  const bv = StatsEngine.bestVolume(name, workouts);
+  const t = StatsEngine.trend(name, workouts);
+  const plateau = StatsEngine.detectPlateau(name, workouts);
+  const sessions = StatsEngine.sessionCount(name, workouts);
+  const lastD = StatsEngine.lastDate(name, workouts);
+  const lastStr = lastD ? new Date(lastD).toLocaleDateString('es-ES',{day:'numeric',month:'short'}) : '—';
+  const sym = trendSymbol(t); const cls = trendClass(t);
+
+  document.getElementById('stats-tooltip').innerHTML = `
+    <div class="stats-tooltip">
+      <div class="tt-header">
+        <div class="tt-name">${name}</div>
+        ${plateau ? '<span class="plateau-badge" style="font-size:11px;padding:4px 10px">⚠️ Plateau</span>' : ''}
+      </div>
+      <div class="stats-grid">
+        <div class="stat-item"><div class="stat-val">${pr}<span> kg</span></div><div class="stat-lbl">PR peso</div></div>
+        <div class="stat-item"><div class="stat-val">${prR}<span> reps</span></div><div class="stat-lbl">PR reps</div></div>
+        <div class="stat-item"><div class="stat-val">${Math.round(bv)}</div><div class="stat-lbl">Mejor vol.</div></div>
+        <div class="stat-item"><div class="stat-val ${cls}">${sym}</div><div class="stat-lbl">Tendencia</div></div>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text2)">Último: ${lastStr} · ${sessions} sesiones</div>
+    </div>
+  `;
+}
+
+function renderChart(workouts) {
+  if (mainChart) { mainChart.destroy(); mainChart = null; }
+  const data = chartMode === 'weight'
+    ? StatsEngine.weightProgress(selectedExercise, workouts)
+    : StatsEngine.volumeProgress(selectedExercise, workouts);
+
+  const canvas = document.getElementById('main-chart');
+  if (!canvas) return;
+
+  if (data.length < 2) {
+    document.getElementById('chart-title').textContent = 'Se necesitan al menos 2 sesiones';
+    return;
+  }
+
+  const isDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const gridColor = isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)';
+  const textColor = isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.35)';
+
+  mainChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: data.map(p => new Date(p.date).toLocaleDateString('es-ES',{day:'numeric',month:'short'})),
+      datasets: [{
+        data: data.map(p => p.value),
+        borderColor: '#ff6b2b', backgroundColor: 'rgba(255,107,43,0.1)',
+        borderWidth: 2.5, tension: 0.4, pointRadius: 4,
+        pointBackgroundColor: '#ff6b2b', fill: true
+      }]
+    },
+    options: {
+      animation: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.raw} ${chartMode==='weight'?'kg':'kg·reps'}` } } },
+      scales: {
+        x: { grid: { color: gridColor }, ticks: { color: textColor, maxTicksLimit: 5, font: { size: 11 } } },
+        y: { grid: { color: gridColor }, ticks: { color: textColor, font: { size: 11 } } }
+      }
+    }
+  });
+}
+
+function allExRow(name, workouts) {
+  const pr = StatsEngine.prWeight(name, workouts);
+  const t = StatsEngine.trend(name, workouts);
+  const plateau = StatsEngine.detectPlateau(name, workouts);
+  const sessions = StatsEngine.sessionCount(name, workouts);
+  return `<div class="workout-row" data-name="${name}">
+    <div>
+      <div class="wr-name">${name}</div>
+      <div class="wr-meta">PR: ${pr} kg · ${sessions} sesiones</div>
+    </div>
+    <div class="wr-right" style="display:flex;align-items:center;gap:8px">
+      ${plateau ? '<span style="color:var(--red);font-size:12px">⚠️</span>' : ''}
+      <span class="${trendClass(t)}" style="font-size:20px">${trendSymbol(t)}</span>
+    </div>
+  </div>`;
+}
