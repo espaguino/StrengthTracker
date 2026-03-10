@@ -2,7 +2,7 @@
   "name": "StrengthTracker",
   "short_name": "StrengthTracker",
   "description": "Seguimiento de entrenamientos de fuerza",
-  "start_url": "/nombre-repositorio/",
+  "start_url": "/StrengthTracker/",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff6b2b",
