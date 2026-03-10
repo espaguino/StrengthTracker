@@ -1,19 +1,19 @@
 const CACHE = 'st-v1';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/css/styles.css',
-  '/js/app.js',
-  '/js/router.js',
-  '/js/models.js',
-  '/js/statsEngine.js',
-  '/js/dataManager.js',
-  '/js/views/home.js',
-  '/js/views/workout.js',
-  '/js/views/stats.js',
-  '/js/views/templates.js',
-  '/js/views/settings.js',
+  '/StrengthTracker/',
+  '/StrengthTracker/index.html',
+  '/StrengthTracker/manifest.json',
+  '/StrengthTracker/css/styles.css',
+  '/StrengthTracker/js/app.js',
+  '/StrengthTracker/js/router.js',
+  '/StrengthTracker/js/models.js',
+  '/StrengthTracker/js/statsEngine.js',
+  '/StrengthTracker/js/dataManager.js',
+  '/StrengthTracker/js/views/home.js',
+  '/StrengthTracker/js/views/workout.js',
+  '/StrengthTracker/js/views/stats.js',
+  '/StrengthTracker/js/views/templates.js',
+  '/StrengthTracker/js/views/settings.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
