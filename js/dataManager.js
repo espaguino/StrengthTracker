@@ -1,30 +1,33 @@
 // ============================================================
-// DATA MANAGER — equivalent to DataManager.swift
+// DATA MANAGER
 // ============================================================
 
-import { DEFAULT_TEMPLATES, createTemplate } from './models.js';
+import { DEFAULT_TEMPLATES, createWorkoutTemplate, createSessionTemplate, uid } from './models.js';
 
 const KEYS = { workouts: 'st_workouts', templates: 'st_templates' };
 
 function load(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
 }
-function save(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
-}
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
 export const DataManager = {
 
   // --- Workouts ---
 
   getWorkouts() { return load(KEYS.workouts, []); },
-
-  saveWorkouts(workouts) { save(KEYS.workouts, workouts); },
+  saveWorkouts(w) { save(KEYS.workouts, w); },
 
   addWorkout(workouts, workout) {
     const updated = [...workouts, workout];
     this.saveWorkouts(updated);
     return updated;
+  },
+
+  updateWorkout(workouts, updated) {
+    const list = workouts.map(w => w.id === updated.id ? updated : w);
+    this.saveWorkouts(list);
+    return list;
   },
 
   deleteWorkout(workouts, id) {
@@ -38,13 +41,16 @@ export const DataManager = {
   getTemplates() {
     const stored = load(KEYS.templates, null);
     if (stored) return stored;
-    // First run: seed defaults
-    const defaults = DEFAULT_TEMPLATES.map(t => createTemplate({ ...t, isDefault: true }));
+    const defaults = DEFAULT_TEMPLATES.map(t => createWorkoutTemplate({
+      name: t.name,
+      sessions: t.sessions.map(s => ({ ...createSessionTemplate(s.name), exercises: s.exercises })),
+      isDefault: true
+    }));
     save(KEYS.templates, defaults);
     return defaults;
   },
 
-  saveTemplates(templates) { save(KEYS.templates, templates); },
+  saveTemplates(t) { save(KEYS.templates, t); },
 
   addTemplate(templates, template) {
     const updated = [...templates, template];
