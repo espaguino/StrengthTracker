@@ -638,27 +638,25 @@ input, textarea { -webkit-user-select: text; user-select: text; }
    SET CARDS — horizontal scroll row
    ============================================================ */
 .sets-scroll-row {
-  display: flex; flex-direction: row; overflow-x: auto;
-  gap: 8px; padding: 10px 14px 12px;
-  -webkit-overflow-scrolling: touch;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px; padding: 10px 14px 12px;
   align-items: stretch;
 }
-.sets-scroll-row::-webkit-scrollbar { display: none; }
 
 .set-add-card {
-  flex-shrink: 0; width: 44px;
   background: none; border: 2px dashed var(--border);
   border-radius: var(--radius-sm); font-size: 20px;
   color: var(--text3); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; align-self: stretch; min-height: 88px;
+  transition: all 0.15s; min-height: 88px;
 }
 .set-add-card:active { opacity: 0.6; }
 
 .set-card {
-  flex-shrink: 0; display: flex; flex-direction: column;
+  display: flex; flex-direction: column;
   background: var(--bg3); border-radius: var(--radius-sm);
-  overflow: hidden; min-width: 110px;
+  overflow: hidden; min-width: 0;
 }
 .set-card-num {
   font-size: 10px; font-weight: 700; color: var(--text3);
@@ -672,11 +670,11 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .set-card-left {
   flex: 1; display: flex; flex-direction: column;
   align-items: center; justify-content: center;
-  padding: 8px 6px; border-right: 1px solid var(--border);
+  padding: 6px 4px; border-right: 1px solid var(--border);
 }
 .set-card-weight {
   width: 100%; background: none; border: none; outline: none;
-  font-size: 24px; font-weight: 700; color: var(--accent);
+  font-size: 18px; font-weight: 700; color: var(--accent);
   text-align: center; font-family: inherit;
   -moz-appearance: textfield;
 }
@@ -689,7 +687,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 .set-card-right {
   display: flex; flex-direction: column;
   align-items: center; justify-content: space-between;
-  padding: 6px 8px; min-width: 52px;
+  padding: 4px 4px; min-width: 0;
 }
 .set-card-badges {
   display: flex; gap: 3px; align-items: center; min-height: 16px;
@@ -698,8 +696,8 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   display: flex; flex-direction: column; align-items: center; gap: 1px;
 }
 .set-card-reps {
-  width: 44px; background: none; border: none; outline: none;
-  font-size: 16px; font-weight: 600; color: var(--text);
+  width: 100%; background: none; border: none; outline: none;
+  font-size: 13px; font-weight: 600; color: var(--text);
   text-align: center; font-family: inherit;
   -moz-appearance: textfield;
 }
