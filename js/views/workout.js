@@ -235,29 +235,21 @@ function setCardHTML(ex, ei, si, set, allWorkouts) {
   const r = parseInt(set.reps) || 0;
   const isPR = w && r && StatsEngine.isNewPR(w, r, ex.name, allWorkouts);
   const isImp = w && r && StatsEngine.isImprovement(w, r, ex.name, allWorkouts);
+  const hasBadge = isPR || isImp;
 
   return `<div class="set-card" data-ei="${ei}" data-si="${si}">
-    <div class="set-card-num">${si + 1}</div>
-    <div class="set-card-body">
-      <div class="set-card-left">
-        <input class="set-card-weight" type="number" inputmode="decimal"
-          placeholder="0" value="${set.weight}"
-          data-field="weight" data-ei="${ei}" data-si="${si}">
-        <span class="set-card-kg">kg</span>
-      </div>
-      <div class="set-card-right">
-        <div class="set-card-badges">
-          <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
-          <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
-        </div>
-        <div class="set-card-reps-row">
-          <input class="set-card-reps" type="number" inputmode="numeric"
-            placeholder="0" value="${set.reps}"
-            data-field="reps" data-ei="${ei}" data-si="${si}">
-          <span class="set-card-reps-lbl">reps</span>
-        </div>
-      </div>
+    <input class="set-card-weight" type="number" inputmode="decimal"
+      placeholder="–" value="${set.weight}"
+      data-field="weight" data-ei="${ei}" data-si="${si}">
+    <div class="set-card-reps-row">
+      <span class="set-card-x">x</span><input class="set-card-reps" type="number" inputmode="numeric"
+      placeholder="–" value="${set.reps}"
+      data-field="reps" data-ei="${ei}" data-si="${si}">
     </div>
+    ${hasBadge ? `<div class="set-card-badges">
+      <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
+      <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
+    </div>` : '<div class="set-card-badges"></div>'}
   </div>`;
 }
 
@@ -302,8 +294,8 @@ function bindEditor(el, state, workoutRef, template) {
       const sname = btn.dataset.sname;
       const session = template?.sessions.find(s => s.id === sid);
 
-      // Only prefill exercises if current workout has none
-      if (w.exercises.length === 0 && session) {
+      // Always load exercises from the selected session
+      if (session) {
         w.exercises = session.exercises.map(n => createExerciseLog(n));
       }
       w.sessionId = sid;
