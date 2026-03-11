@@ -5,7 +5,7 @@
 import { createWorkoutLog, createExerciseLog, createSetLog, workoutTotalVolume, workoutPRCount } from '../models.js';
 import { StatsEngine } from '../statsEngine.js';
 import { DataManager } from '../dataManager.js';
-import { showToast, openModal, closeModal } from '../app.js';
+import { showToast, openModal, closeModal, setKeyboardHideCallback, clearKeyboardHideCallback } from '../app.js';
 import { emptyState } from './home.js';
 
 // ============================================================
@@ -240,11 +240,19 @@ function bindEditor(el, state, workoutRef) {
     state.workouts = DataManager.updateWorkout(state.workouts, workout);
   }
 
+  // Auto-save when keyboard closes (tap outside input)
+  setKeyboardHideCallback(() => saveToState());
+
+  function leaveEditor() {
+    clearKeyboardHideCallback();
+    document.getElementById('tabbar').style.display = 'flex';
+    document.getElementById('fab').style.display = 'flex';
+  }
+
   // Back
   el.querySelector('#editor-back')?.addEventListener('click', () => {
     saveToState();
-    document.getElementById('tabbar').style.display = 'flex';
-    document.getElementById('fab').style.display = 'flex';
+    leaveEditor();
     renderWorkouts(state);
   });
 
@@ -263,8 +271,7 @@ function bindEditor(el, state, workoutRef) {
     })).filter(ex => ex.sets.length > 0);
     workout.status = 'done';
     state.workouts = DataManager.updateWorkout(state.workouts, workout);
-    document.getElementById('tabbar').style.display = 'flex';
-    document.getElementById('fab').style.display = 'flex';
+    leaveEditor();
     renderWorkouts(state);
     showToast('✅ Entreno guardado');
   });
@@ -288,8 +295,7 @@ function bindEditor(el, state, workoutRef) {
   el.querySelector('#delete-workout-btn')?.addEventListener('click', () => {
     if (!confirm('¿Borrar este entreno?')) return;
     state.workouts = DataManager.deleteWorkout(state.workouts, workoutRef.id);
-    document.getElementById('tabbar').style.display = 'flex';
-    document.getElementById('fab').style.display = 'flex';
+    leaveEditor();
     renderWorkouts(state);
     showToast('Entreno borrado');
   });
