@@ -1,19 +1,20 @@
-const CACHE = 'st-v1';
+const CACHE = 'st-v2';
+const BASE = '/StrengthTracker';
 const ASSETS = [
-  '/StrengthTracker/',
-  '/StrengthTracker/index.html',
-  '/StrengthTracker/manifest.json',
-  '/StrengthTracker/css/styles.css',
-  '/StrengthTracker/js/app.js',
-  '/StrengthTracker/js/router.js',
-  '/StrengthTracker/js/models.js',
-  '/StrengthTracker/js/statsEngine.js',
-  '/StrengthTracker/js/dataManager.js',
-  '/StrengthTracker/js/views/home.js',
-  '/StrengthTracker/js/views/workout.js',
-  '/StrengthTracker/js/views/stats.js',
-  '/StrengthTracker/js/views/templates.js',
-  '/StrengthTracker/js/views/settings.js',
+  `${BASE}/`,
+  `${BASE}/index.html`,
+  `${BASE}/manifest.json`,
+  `${BASE}/css/styles.css`,
+  `${BASE}/js/app.js`,
+  `${BASE}/js/router.js`,
+  `${BASE}/js/models.js`,
+  `${BASE}/js/statsEngine.js`,
+  `${BASE}/js/dataManager.js`,
+  `${BASE}/js/views/home.js`,
+  `${BASE}/js/views/workout.js`,
+  `${BASE}/js/views/stats.js`,
+  `${BASE}/js/views/templates.js`,
+  `${BASE}/js/views/settings.js`,
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js'
 ];
 
@@ -31,6 +32,6 @@ self.addEventListener('activate', e => {
 
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match('/index.html')))
+    caches.match(e.request).then(cached => cached || fetch(e.request).catch(() => caches.match(`${BASE}/index.html`)))
   );
 });
