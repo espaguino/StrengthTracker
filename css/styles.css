@@ -641,15 +641,15 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 5px; padding: 8px 10px 10px;
-  align-items: stretch;
+  align-items: start;
 }
 
 .set-add-card {
   background: none; border: 2px dashed var(--border);
-  border-radius: var(--radius-sm); font-size: 20px;
+  border-radius: 8px; font-size: 20px;
   color: var(--text3); cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  transition: all 0.15s; min-height: 88px;
+  transition: all 0.15s; height: 60px;
 }
 .set-add-card:active { opacity: 0.6; }
 
@@ -660,7 +660,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 .set-card-weight-row {
   display: flex; align-items: center; justify-content: center;
-  padding: 6px 4px 4px;
+  padding: 7px 4px 5px;
 }
 .set-card-weight {
   width: 100%; background: none; border: none; outline: none;
@@ -675,10 +675,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   height: 1px; background: var(--text3); margin: 0 6px;
 }
 .set-card-bottom {
-  display: flex; align-items: center; padding: 3px 4px 3px;
-}
-.set-card-badges-side, .set-card-reps-side {
-  line-height: 1;
+  display: flex; align-items: center; padding: 4px 4px 5px;
 }
 .set-card-reps-side {
   width: 50%; display: flex; align-items: baseline;
@@ -701,10 +698,7 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   width: 50%; display: flex; align-items: center;
   justify-content: center; gap: 2px; font-size: 11px;
 }
-.set-card-badges {
-  display: flex; gap: 2px; align-items: center; min-height: 14px;
-  font-size: 11px;
-}
+/* .set-card-badges removed */
 
 
 /* ============================================================
