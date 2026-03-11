@@ -9,6 +9,29 @@ import { showToast, openModal, closeModal, setKeyboardHideCallback, clearKeyboar
 import { emptyState } from './home.js';
 
 // ============================================================
+// CYCLE/WEEK CALCULATION
+// ============================================================
+
+function getWeekNumber(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - d.getDay() + 1); // Monday
+  return d.getTime();
+}
+
+function calcCycleWeek(templateId, workouts) {
+  if (!templateId) return null;
+  const past = workouts
+    .filter(w => w.templateId === templateId && w.status === 'done')
+    .sort((a, b) => a.date - b.date);
+  if (!past.length) return 1;
+  const firstWeek = getWeekNumber(past[0].date);
+  const currentWeek = getWeekNumber(Date.now());
+  const weeksDiff = Math.round((currentWeek - firstWeek) / (7 * 24 * 60 * 60 * 1000));
+  return weeksDiff + 1;
+}
+
+// ============================================================
 // LIST VIEW
 // ============================================================
 
@@ -20,7 +43,7 @@ export function renderWorkouts(state) {
     <div class="page-header"><h1>Entrenamientos</h1></div>
     <div id="workout-list">
       ${sorted.length
-        ? sorted.map(w => workoutRowHTML(w)).join('')
+        ? sorted.map(w => workoutRowHTML(w, state)).join('')
         : emptyState('🏋️', 'Sin entrenamientos', 'Pulsa + para registrar tu primer entreno')}
     </div>
   `;
@@ -30,19 +53,21 @@ export function renderWorkouts(state) {
   });
 }
 
-function workoutRowHTML(w) {
+function workoutRowHTML(w, state) {
   const vol = Math.round(workoutTotalVolume(w));
   const prs = workoutPRCount(w);
   const isDraft = w.status === 'draft';
+  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts) : null;
   return `<div class="workout-row" data-id="${w.id}">
     <div>
       <div class="wr-name">
-        ${w.name}
+        ${w.templateName || w.name}
         ${isDraft ? '<span class="draft-badge">En progreso</span>' : ''}
       </div>
       <div class="wr-meta">
         ${new Date(w.date).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' })}
         ${w.sessionName ? ` · ${w.sessionName}` : ''}
+        ${week ? ` · Sem. ${week}` : ''}
         · ${w.exercises.length} ejercicios
       </div>
     </div>
@@ -99,7 +124,7 @@ function bindPicker(state) {
       const tmpl = state.templates.find(t => t.id === tid);
       const session = tmpl?.sessions.find(s => s.id === sid);
       closeModal();
-      createAndOpenWorkout(state, { templateId: tid, templateName: tname, sessionId: sid, sessionName: sname, exercises: session?.exercises || [] });
+      createAndOpenWorkout(state, { templateId: tid, templateName: tname, sessionId: sid, sessionName: sname, exercises: session?.exercises || [], template: tmpl });
     });
   });
 
@@ -109,48 +134,63 @@ function bindPicker(state) {
   });
 }
 
-function createAndOpenWorkout(state, { templateId = null, templateName = null, sessionId = null, sessionName = null, exercises = [] }) {
+function createAndOpenWorkout(state, { templateId = null, templateName = null, sessionId = null, sessionName = null, exercises = [], template = null }) {
   const name = templateId ? `${templateName} – ${sessionName}` : '';
   const workout = createWorkoutLog({ name, templateId, templateName, sessionId, sessionName });
   workout.exercises = exercises.map(n => createExerciseLog(n));
   state.workouts = DataManager.addWorkout(state.workouts, workout);
   renderWorkouts(state);
-  setTimeout(() => openWorkoutEditor(state, workout.id), 50);
+  setTimeout(() => openWorkoutEditor(state, workout.id, template), 50);
 }
 
 // ============================================================
 // WORKOUT EDITOR (full screen, no modal)
 // ============================================================
 
-export function openWorkoutEditor(state, id) {
+export function openWorkoutEditor(state, id, templateOverride) {
   const workout = state.workouts.find(w => w.id === id);
   if (!workout) return;
 
-  // Hide tabbar and FAB
+  const template = templateOverride || (workout.templateId
+    ? state.templates.find(t => t.id === workout.templateId)
+    : null);
+
   document.getElementById('tabbar').style.display = 'none';
   document.getElementById('fab').style.display = 'none';
 
   const el = document.getElementById('page-workouts');
-  el.innerHTML = workoutEditorHTML(workout, state.workouts);
-  bindEditor(el, state, workout);
+  el.innerHTML = workoutEditorHTML(workout, state, template);
+  bindEditor(el, state, workout, template);
 }
 
-function workoutEditorHTML(w, allWorkouts) {
+function workoutEditorHTML(w, state, template) {
   const isDraft = w.status === 'draft';
+  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts) : null;
+  const sessions = template?.sessions || [];
+
   return `
     <div class="editor-header">
-      <button class="back-btn" id="editor-back">‹ Volver</button>
+      <button class="back-btn" id="editor-back">‹</button>
       <div class="editor-header-center">
-        <input class="editor-name-input" id="editor-name" value="${w.name}" placeholder="Nombre del entreno">
-        ${w.sessionName ? `<div class="editor-session-label">${w.templateName} · ${w.sessionName}</div>` : ''}
+        <div class="editor-title-row">
+          <input class="editor-name-input" id="editor-name" value="${w.templateName || w.name}" placeholder="Nombre del entreno">
+          ${week ? `<span class="editor-week-badge">Sem. ${week}</span>` : ''}
+        </div>
       </div>
-      <button class="editor-save-btn" id="editor-save">
-        ${isDraft ? 'Finalizar' : 'Guardar'}
-      </button>
+      <button class="editor-save-btn" id="editor-save">${isDraft ? 'Finalizar' : 'Guardar'}</button>
     </div>
 
+    ${sessions.length > 1 ? `
+      <div class="session-seg-row" id="session-seg">
+        ${sessions.map(s => `
+          <button class="session-seg-btn ${s.id === w.sessionId ? 'active' : ''}"
+            data-sid="${s.id}" data-sname="${s.name}">
+            ${s.name}
+          </button>`).join('')}
+      </div>` : ''}
+
     <div id="editor-exercises">
-      ${w.exercises.map((ex, ei) => exerciseSectionHTML(ex, ei, allWorkouts)).join('')}
+      ${w.exercises.map((ex, ei) => exerciseSectionHTML(ex, ei, state.workouts)).join('')}
     </div>
 
     <div class="add-ex-row" style="margin-top:4px">
@@ -167,6 +207,10 @@ function workoutEditorHTML(w, allWorkouts) {
   `;
 }
 
+// ============================================================
+// EXERCISE & SET HTML
+// ============================================================
+
 function exerciseSectionHTML(ex, ei, allWorkouts) {
   const plateau = StatsEngine.detectPlateau(ex.name, allWorkouts);
   return `<div class="exercise-section" data-ei="${ei}">
@@ -178,38 +222,41 @@ function exerciseSectionHTML(ex, ei, allWorkouts) {
       </div>
     </div>
     <div class="exercise-body">
-      <div class="set-rows-header">
-        <span></span><span style="text-align:center;font-size:10px;color:var(--text3)">PESO</span><span></span>
+      <div class="sets-scroll-row">
+        ${ex.sets.map((s, si) => setCardHTML(ex, ei, si, s, allWorkouts)).join('')}
+        <button class="set-add-card" data-ei="${ei}">＋</button>
       </div>
-      ${ex.sets.map((s, si) => setRowHTML(ex, ei, si, s, allWorkouts)).join('')}
-      <button class="btn-add-set" data-ei="${ei}">+ Añadir set</button>
     </div>
   </div>`;
 }
 
-function setRowHTML(ex, ei, si, set, allWorkouts) {
+function setCardHTML(ex, ei, si, set, allWorkouts) {
   const w = parseFloat(set.weight) || 0;
   const r = parseInt(set.reps) || 0;
   const isPR = w && r && StatsEngine.isNewPR(w, r, ex.name, allWorkouts);
   const isImp = w && r && StatsEngine.isImprovement(w, r, ex.name, allWorkouts);
 
-  return `<div class="set-row" data-ei="${ei}" data-si="${si}">
-    <div class="set-num">${si + 1}</div>
-    <div class="set-main">
-      <input class="set-weight-input" type="number" inputmode="decimal"
-        placeholder="0" value="${set.weight}"
-        data-field="weight" data-ei="${ei}" data-si="${si}">
-      <span class="set-kg-label">kg</span>
-    </div>
-    <div class="set-right">
-      <div class="set-badges">
-        <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
-        <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
+  return `<div class="set-card" data-ei="${ei}" data-si="${si}">
+    <div class="set-card-num">${si + 1}</div>
+    <div class="set-card-body">
+      <div class="set-card-left">
+        <input class="set-card-weight" type="number" inputmode="decimal"
+          placeholder="0" value="${set.weight}"
+          data-field="weight" data-ei="${ei}" data-si="${si}">
+        <span class="set-card-kg">kg</span>
       </div>
-      <input class="set-reps-input" type="number" inputmode="numeric"
-        placeholder="0" value="${set.reps}"
-        data-field="reps" data-ei="${ei}" data-si="${si}">
-      <span class="set-reps-label">reps</span>
+      <div class="set-card-right">
+        <div class="set-card-badges">
+          <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
+          <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
+        </div>
+        <div class="set-card-reps-row">
+          <input class="set-card-reps" type="number" inputmode="numeric"
+            placeholder="0" value="${set.reps}"
+            data-field="reps" data-ei="${ei}" data-si="${si}">
+          <span class="set-card-reps-lbl">reps</span>
+        </div>
+      </div>
     </div>
   </div>`;
 }
@@ -218,29 +265,26 @@ function setRowHTML(ex, ei, si, set, allWorkouts) {
 // BIND EDITOR
 // ============================================================
 
-function bindEditor(el, state, workoutRef) {
-  let workout = state.workouts.find(w => w.id === workoutRef.id);
-
+function bindEditor(el, state, workoutRef, template) {
   function getWorkout() { return state.workouts.find(w => w.id === workoutRef.id); }
 
   function refresh() {
-    workout = getWorkout();
+    const w = getWorkout();
     document.getElementById('editor-exercises').innerHTML =
-      workout.exercises.map((ex, ei) => exerciseSectionHTML(ex, ei, state.workouts)).join('');
+      w.exercises.map((ex, ei) => exerciseSectionHTML(ex, ei, state.workouts)).join('');
     bindSetInputs();
     bindExerciseButtons();
   }
 
   function saveToState() {
-    workout = getWorkout();
+    const w = getWorkout();
     const name = document.getElementById('editor-name')?.value.trim();
     const notes = document.getElementById('editor-notes')?.value.trim();
-    if (name) workout.name = name;
-    workout.notes = notes || '';
-    state.workouts = DataManager.updateWorkout(state.workouts, workout);
+    if (name) w.name = name;
+    w.notes = notes || '';
+    state.workouts = DataManager.updateWorkout(state.workouts, w);
   }
 
-  // Auto-save when keyboard closes (tap outside input)
   setKeyboardHideCallback(() => saveToState());
 
   function leaveEditor() {
@@ -248,6 +292,30 @@ function bindEditor(el, state, workoutRef) {
     document.getElementById('tabbar').style.display = 'flex';
     document.getElementById('fab').style.display = 'flex';
   }
+
+  // Session segmented control
+  el.querySelectorAll('.session-seg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      saveToState();
+      const w = getWorkout();
+      const sid = btn.dataset.sid;
+      const sname = btn.dataset.sname;
+      const session = template?.sessions.find(s => s.id === sid);
+
+      // Only prefill exercises if current workout has none
+      if (w.exercises.length === 0 && session) {
+        w.exercises = session.exercises.map(n => createExerciseLog(n));
+      }
+      w.sessionId = sid;
+      w.sessionName = sname;
+      w.name = `${w.templateName} – ${sname}`;
+      state.workouts = DataManager.updateWorkout(state.workouts, w);
+
+      // Re-render editor with new session selected
+      el.innerHTML = workoutEditorHTML(w, state, template);
+      bindEditor(el, state, w, template);
+    });
+  });
 
   // Back
   el.querySelector('#editor-back')?.addEventListener('click', () => {
@@ -259,18 +327,17 @@ function bindEditor(el, state, workoutRef) {
   // Save / Finish
   el.querySelector('#editor-save')?.addEventListener('click', () => {
     saveToState();
-    workout = getWorkout();
-    // Mark PRs and improvements
-    workout.exercises = workout.exercises.map(ex => ({
+    const w = getWorkout();
+    w.exercises = w.exercises.map(ex => ({
       ...ex,
       sets: ex.sets.filter(s => s.weight || s.reps).map(s => ({
         ...s,
-        isPR: s.weight && s.reps && StatsEngine.isNewPR(parseFloat(s.weight), parseInt(s.reps), ex.name, state.workouts.filter(w => w.id !== workout.id)),
-        isImprovement: s.weight && s.reps && StatsEngine.isImprovement(parseFloat(s.weight), parseInt(s.reps), ex.name, state.workouts.filter(w => w.id !== workout.id))
+        isPR: s.weight && s.reps && StatsEngine.isNewPR(parseFloat(s.weight), parseInt(s.reps), ex.name, state.workouts.filter(x => x.id !== w.id)),
+        isImprovement: s.weight && s.reps && StatsEngine.isImprovement(parseFloat(s.weight), parseInt(s.reps), ex.name, state.workouts.filter(x => x.id !== w.id))
       }))
     })).filter(ex => ex.sets.length > 0);
-    workout.status = 'done';
-    state.workouts = DataManager.updateWorkout(state.workouts, workout);
+    w.status = 'done';
+    state.workouts = DataManager.updateWorkout(state.workouts, w);
     leaveEditor();
     renderWorkouts(state);
     showToast('✅ Entreno guardado');
@@ -280,9 +347,9 @@ function bindEditor(el, state, workoutRef) {
   el.querySelector('#add-ex-btn')?.addEventListener('click', () => {
     const inp = el.querySelector('#new-ex-input');
     const name = inp.value.trim(); if (!name) return;
-    workout = getWorkout();
-    workout.exercises.push(createExerciseLog(name));
-    state.workouts = DataManager.updateWorkout(state.workouts, workout);
+    const w = getWorkout();
+    w.exercises.push(createExerciseLog(name));
+    state.workouts = DataManager.updateWorkout(state.workouts, w);
     inp.value = '';
     refresh();
   });
@@ -291,7 +358,7 @@ function bindEditor(el, state, workoutRef) {
     if (e.key === 'Enter') el.querySelector('#add-ex-btn').click();
   });
 
-  // Delete workout
+  // Delete
   el.querySelector('#delete-workout-btn')?.addEventListener('click', () => {
     if (!confirm('¿Borrar este entreno?')) return;
     state.workouts = DataManager.deleteWorkout(state.workouts, workoutRef.id);
@@ -304,22 +371,21 @@ function bindEditor(el, state, workoutRef) {
   bindExerciseButtons();
 
   function bindSetInputs() {
-    el.querySelectorAll('.set-weight-input, .set-reps-input').forEach(inp => {
+    el.querySelectorAll('.set-card-weight, .set-card-reps').forEach(inp => {
       inp.addEventListener('input', () => {
         const ei = parseInt(inp.dataset.ei), si = parseInt(inp.dataset.si);
-        workout = getWorkout();
-        workout.exercises[ei].sets[si][inp.dataset.field] = inp.value;
-        state.workouts = DataManager.updateWorkout(state.workouts, workout);
-        // Update badges live
-        const s = workout.exercises[ei].sets[si];
-        const exName = workout.exercises[ei].name;
-        const othersWorkouts = state.workouts.filter(w => w.id !== workout.id);
-        const w2 = parseFloat(s.weight) || 0, r = parseInt(s.reps) || 0;
-        const isPR = w2 && r && StatsEngine.isNewPR(w2, r, exName, othersWorkouts);
-        const isImp = w2 && r && StatsEngine.isImprovement(w2, r, exName, othersWorkouts);
-        const row = inp.closest('.set-row');
-        row?.querySelector('.badge-pr')?.classList.toggle('hidden', !isPR);
-        row?.querySelector('.badge-imp')?.classList.toggle('hidden', !isImp);
+        const w = getWorkout();
+        w.exercises[ei].sets[si][inp.dataset.field] = inp.value;
+        state.workouts = DataManager.updateWorkout(state.workouts, w);
+        const s = w.exercises[ei].sets[si];
+        const exName = w.exercises[ei].name;
+        const others = state.workouts.filter(x => x.id !== w.id);
+        const wv = parseFloat(s.weight) || 0, rv = parseInt(s.reps) || 0;
+        const isPR = wv && rv && StatsEngine.isNewPR(wv, rv, exName, others);
+        const isImp = wv && rv && StatsEngine.isImprovement(wv, rv, exName, others);
+        const card = inp.closest('.set-card');
+        card?.querySelector('.badge-pr')?.classList.toggle('hidden', !isPR);
+        card?.querySelector('.badge-imp')?.classList.toggle('hidden', !isImp);
       });
     });
   }
@@ -327,20 +393,20 @@ function bindEditor(el, state, workoutRef) {
   function bindExerciseButtons() {
     el.querySelectorAll('.btn-remove-ex').forEach(btn => {
       btn.addEventListener('click', () => {
-        workout = getWorkout();
-        workout.exercises.splice(parseInt(btn.dataset.ei), 1);
-        state.workouts = DataManager.updateWorkout(state.workouts, workout);
+        const w = getWorkout();
+        w.exercises.splice(parseInt(btn.dataset.ei), 1);
+        state.workouts = DataManager.updateWorkout(state.workouts, w);
         refresh();
       });
     });
 
-    el.querySelectorAll('.btn-add-set').forEach(btn => {
+    el.querySelectorAll('.set-add-card').forEach(btn => {
       btn.addEventListener('click', () => {
         const ei = parseInt(btn.dataset.ei);
-        workout = getWorkout();
-        const last = workout.exercises[ei].sets.slice(-1)[0];
-        workout.exercises[ei].sets.push(createSetLog({ weight: last?.weight || '', reps: last?.reps || '' }));
-        state.workouts = DataManager.updateWorkout(state.workouts, workout);
+        const w = getWorkout();
+        const last = w.exercises[ei].sets.slice(-1)[0];
+        w.exercises[ei].sets.push(createSetLog({ weight: last?.weight || '', reps: last?.reps || '' }));
+        state.workouts = DataManager.updateWorkout(state.workouts, w);
         refresh();
       });
     });
