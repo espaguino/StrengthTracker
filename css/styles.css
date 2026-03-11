@@ -675,7 +675,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   height: 1px; background: var(--text3); margin: 0 6px;
 }
 .set-card-bottom {
-  display: flex; align-items: center; padding: 4px 4px 4px;
+  display: flex; align-items: center; padding: 3px 4px 3px;
+}
+.set-card-badges-side, .set-card-reps-side {
+  line-height: 1;
 }
 .set-card-reps-side {
   width: 50%; display: flex; align-items: baseline;
