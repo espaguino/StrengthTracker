@@ -332,10 +332,17 @@ function bindEditor(el, state, workoutRef, template) {
       const sname = btn.dataset.sname;
       const session = template?.sessions.find(s => s.id === sid);
 
-      // Always load exercises from the selected session
-      if (session) {
+      // Save current session's exercises before switching
+      if (!w._sessionExercises) w._sessionExercises = {};
+      w._sessionExercises[w.sessionId] = w.exercises;
+
+      // Restore exercises for the new session if previously visited, else init fresh
+      if (w._sessionExercises[sid]) {
+        w.exercises = w._sessionExercises[sid];
+      } else if (session) {
         w.exercises = session.exercises.map(n => createExerciseLog(n));
       }
+
       w.sessionId = sid;
       w.sessionName = sname;
       w.name = `${w.templateName} – ${sname}`;
