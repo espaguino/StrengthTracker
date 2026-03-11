@@ -1,4 +1,4 @@
-const CACHE = 'st-v2';
+const CACHE = 'st-v3';
 const BASE = '/StrengthTracker';
 const ASSETS = [
   `${BASE}/`,
