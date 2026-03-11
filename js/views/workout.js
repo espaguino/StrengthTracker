@@ -211,18 +211,50 @@ function workoutEditorHTML(w, state, template) {
 // EXERCISE & SET HTML
 // ============================================================
 
+function lastSessionSets(exName, allWorkouts) {
+  // Find the most recent DONE workout containing this exercise
+  const past = allWorkouts
+    .filter(w => w.status === 'done' && w.exercises.some(e => e.name === exName))
+    .sort((a, b) => b.date - a.date);
+  if (!past.length) return [];
+  return past[0].exercises.find(e => e.name === exName)?.sets || [];
+}
+
 function exerciseSectionHTML(ex, ei, allWorkouts) {
   const plateau = StatsEngine.detectPlateau(ex.name, allWorkouts);
+  const prevSets = lastSessionSets(ex.name, allWorkouts);
   return `<div class="exercise-section" data-ei="${ei}">
     <div class="exercise-header">
       <span class="ex-title">${ex.name}</span>
       <div class="ex-meta">
         ${plateau ? '<span style="font-size:10px;color:var(--red);font-weight:600">⚠️ Plateau</span>' : ''}
-        <button class="btn-remove-ex" data-ei="${ei}">×</button>
+            ${prevSets.length ? `<button class="btn-eye-ex dim" data-ei="${ei}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>` : ''}
+        <button class="btn-collapse-ex" data-ei="${ei}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
     </div>
-    <div class="exercise-body">
-      <div class="sets-scroll-row">
+    ${prevSets.length ? `
+    <div class="exercise-prev hidden" data-ei="${ei}">
+      <div class="sets-grid">
+        ${prevSets.map(s => `
+          <div class="set-card set-card-prev">
+            <div class="set-card-weight-row">
+              <span class="set-card-weight-prev">${s.weight || '–'}</span>
+            </div>
+            <div class="set-card-divider"></div>
+            <div class="set-card-bottom">
+              <div class="set-card-reps-side">
+                <span class="set-card-x">x</span>
+                <span class="set-card-reps-prev">${s.reps || '–'}</span>
+              </div>
+              <div class="set-card-badges-side">
+                ${s.isPR ? '<span class="badge-pr">🏆</span>' : ''}
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>` : ''}
+    <div class="exercise-body" data-ei="${ei}">
+      <div class="sets-grid">
         ${ex.sets.map((s, si) => setCardHTML(ex, ei, si, s, allWorkouts)).join('')}
         <button class="set-add-card" data-ei="${ei}">＋</button>
       </div>
@@ -238,18 +270,24 @@ function setCardHTML(ex, ei, si, set, allWorkouts) {
   const hasBadge = isPR || isImp;
 
   return `<div class="set-card" data-ei="${ei}" data-si="${si}">
-    <input class="set-card-weight" type="number" inputmode="decimal"
-      placeholder="–" value="${set.weight}"
-      data-field="weight" data-ei="${ei}" data-si="${si}">
-    <div class="set-card-reps-row">
-      <span class="set-card-x">x</span><input class="set-card-reps" type="number" inputmode="numeric"
-      placeholder="–" value="${set.reps}"
-      data-field="reps" data-ei="${ei}" data-si="${si}">
+    <div class="set-card-weight-row">
+      <input class="set-card-weight" type="number" inputmode="decimal"
+        placeholder="–" value="${set.weight}"
+        data-field="weight" data-ei="${ei}" data-si="${si}">
     </div>
-    ${hasBadge ? `<div class="set-card-badges">
-      <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
-      <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
-    </div>` : '<div class="set-card-badges"></div>'}
+    <div class="set-card-divider"></div>
+    <div class="set-card-bottom">
+      <div class="set-card-reps-side">
+        <span class="set-card-x">x</span>
+        <input class="set-card-reps" type="number" inputmode="numeric"
+          placeholder="–" value="${set.reps}"
+          data-field="reps" data-ei="${ei}" data-si="${si}">
+      </div>
+      <div class="set-card-badges-side">
+        <span class="badge-pr ${isPR ? '' : 'hidden'}">🏆</span>
+        <span class="badge-imp ${isImp ? '' : 'hidden'}">↑</span>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -400,6 +438,32 @@ function bindEditor(el, state, workoutRef, template) {
         w.exercises[ei].sets.push(createSetLog({ weight: last?.weight || '', reps: last?.reps || '' }));
         state.workouts = DataManager.updateWorkout(state.workouts, w);
         refresh();
+      });
+    });
+
+    // Collapse/expand
+    el.querySelectorAll('.btn-collapse-ex').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ei = btn.dataset.ei;
+        const body = el.querySelector(`.exercise-body[data-ei="${ei}"]`);
+        const isCollapsed = body.classList.toggle('hidden');
+        btn.classList.toggle('collapsed', isCollapsed);
+        if (isCollapsed) {
+          el.querySelector(`.exercise-prev[data-ei="${ei}"]`)?.classList.add('hidden');
+          const eyeBtn = el.querySelector(`.btn-eye-ex[data-ei="${ei}"]`);
+          if (eyeBtn) eyeBtn.classList.add('dim');
+        }
+      });
+    });
+
+    // Eye toggle — show/hide previous session (hidden by default)
+    el.querySelectorAll('.btn-eye-ex').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const ei = btn.dataset.ei;
+        const prev = el.querySelector(`.exercise-prev[data-ei="${ei}"]`);
+        if (!prev) return;
+        const isHidden = prev.classList.toggle('hidden');
+        btn.classList.toggle('dim', isHidden);
       });
     });
   }
