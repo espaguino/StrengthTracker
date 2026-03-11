@@ -596,3 +596,117 @@ textarea.form-input { resize: none; }
 * { touch-action: manipulation; }
 body { -webkit-user-select: none; user-select: none; }
 input, textarea { -webkit-user-select: text; user-select: text; }
+
+/* ============================================================
+   SESSION SEGMENTED CONTROL (editor)
+   ============================================================ */
+.session-seg-row {
+  display: flex; overflow-x: auto; gap: 0;
+  padding: 8px 16px; background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  -webkit-overflow-scrolling: touch;
+}
+.session-seg-row::-webkit-scrollbar { display: none; }
+
+.session-seg-btn {
+  flex-shrink: 0; padding: 8px 18px;
+  border: none; background: none; cursor: pointer;
+  font-size: 14px; font-weight: 500; color: var(--text2);
+  font-family: inherit; position: relative;
+  transition: color 0.15s;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+}
+.session-seg-btn.active {
+  color: var(--accent); font-weight: 700;
+  border-bottom-color: var(--accent);
+}
+
+/* ============================================================
+   EDITOR HEADER — title + week badge
+   ============================================================ */
+.editor-title-row {
+  display: flex; align-items: center; gap: 8px; min-width: 0;
+}
+.editor-week-badge {
+  flex-shrink: 0; font-size: 11px; font-weight: 600;
+  background: rgba(255,107,43,0.15); color: var(--accent);
+  padding: 3px 8px; border-radius: 8px; white-space: nowrap;
+}
+
+/* ============================================================
+   SET CARDS — horizontal scroll row
+   ============================================================ */
+.sets-scroll-row {
+  display: flex; flex-direction: row; overflow-x: auto;
+  gap: 8px; padding: 10px 14px 12px;
+  -webkit-overflow-scrolling: touch;
+  align-items: stretch;
+}
+.sets-scroll-row::-webkit-scrollbar { display: none; }
+
+.set-add-card {
+  flex-shrink: 0; width: 44px;
+  background: none; border: 2px dashed var(--border);
+  border-radius: var(--radius-sm); font-size: 20px;
+  color: var(--text3); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s; align-self: stretch; min-height: 88px;
+}
+.set-add-card:active { opacity: 0.6; }
+
+.set-card {
+  flex-shrink: 0; display: flex; flex-direction: column;
+  background: var(--bg3); border-radius: var(--radius-sm);
+  overflow: hidden; min-width: 110px;
+}
+.set-card-num {
+  font-size: 10px; font-weight: 700; color: var(--text3);
+  text-align: center; padding: 4px 0 2px;
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
+.set-card-body {
+  display: flex; flex: 1;
+  border-top: 1px solid var(--border);
+}
+.set-card-left {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 8px 6px; border-right: 1px solid var(--border);
+}
+.set-card-weight {
+  width: 100%; background: none; border: none; outline: none;
+  font-size: 24px; font-weight: 700; color: var(--accent);
+  text-align: center; font-family: inherit;
+  -moz-appearance: textfield;
+}
+.set-card-weight::-webkit-outer-spin-button,
+.set-card-weight::-webkit-inner-spin-button { -webkit-appearance: none; }
+.set-card-weight::placeholder { color: var(--text3); font-size: 18px; font-weight: 400; }
+.set-card-kg {
+  font-size: 11px; color: var(--text2); font-weight: 500; margin-top: 1px;
+}
+.set-card-right {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: space-between;
+  padding: 6px 8px; min-width: 52px;
+}
+.set-card-badges {
+  display: flex; gap: 3px; align-items: center; min-height: 16px;
+}
+.set-card-reps-row {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+}
+.set-card-reps {
+  width: 44px; background: none; border: none; outline: none;
+  font-size: 16px; font-weight: 600; color: var(--text);
+  text-align: center; font-family: inherit;
+  -moz-appearance: textfield;
+}
+.set-card-reps::-webkit-outer-spin-button,
+.set-card-reps::-webkit-inner-spin-button { -webkit-appearance: none; }
+.set-card-reps::placeholder { color: var(--text3); font-size: 13px; }
+.set-card-reps-lbl {
+  font-size: 9px; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.5px;
+}
