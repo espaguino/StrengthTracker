@@ -637,10 +637,10 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 /* ============================================================
    SET CARDS — horizontal scroll row
    ============================================================ */
-.sets-scroll-row {
+.sets-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 6px; padding: 10px 14px 12px;
+  gap: 5px; padding: 8px 10px 10px;
   align-items: stretch;
 }
 
