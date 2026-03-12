@@ -19,16 +19,15 @@ function getWeekNumber(date) {
   return d.getTime();
 }
 
-function calcCycleWeek(templateId, workouts) {
+function calcCycleWeek(templateId, workouts, workoutId) {
   if (!templateId) return null;
-  const past = workouts
-    .filter(w => w.templateId === templateId && w.status === 'done')
+  // All workouts for this template sorted ascending by date
+  const all = workouts
+    .filter(w => w.templateId === templateId)
     .sort((a, b) => a.date - b.date);
-  if (!past.length) return 1;
-  const firstWeek = getWeekNumber(past[0].date);
-  const currentWeek = getWeekNumber(Date.now());
-  const weeksDiff = Math.round((currentWeek - firstWeek) / (7 * 24 * 60 * 60 * 1000));
-  return weeksDiff + 1;
+  if (!all.length) return 1;
+  const idx = workoutId ? all.findIndex(w => w.id === workoutId) : all.length;
+  return (idx < 0 ? all.length : idx) + 1;
 }
 
 // ============================================================
@@ -57,23 +56,24 @@ function workoutRowHTML(w, state) {
   const vol = Math.round(workoutTotalVolume(w));
   const prs = workoutPRCount(w);
   const isDraft = w.status === 'draft';
-  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts) : null;
+  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts, w.id) : null;
+  const dateStr = new Date(w.date).toLocaleDateString('es-ES', { day:'numeric', month:'short' });
   return `<div class="workout-row" data-id="${w.id}">
-    <div>
-      <div class="wr-name">
-        ${w.templateName || w.name}
+    <div class="wr-left">
+      <div class="wr-name-row">
+        <span class="wr-name">${w.templateName || w.name}</span>
         ${isDraft ? '<span class="draft-badge">En progreso</span>' : ''}
       </div>
-      <div class="wr-meta">
-        ${new Date(w.date).toLocaleDateString('es-ES', { weekday:'short', day:'numeric', month:'short' })}
-        ${w.sessionName ? ` · ${w.sessionName}` : ''}
-        ${week ? ` · Sem. ${week}` : ''}
-        · ${w.exercises.length} ejercicios
+      <div class="wr-sub-row">
+        <span class="wr-date">${dateStr}</span>
+        ${week ? `<span class="wr-week-badge">Sem. ${week}</span>` : ''}
+        ${w.sessionName ? `<span class="wr-session">${w.sessionName}</span>` : ''}
       </div>
+      <div class="wr-meta">${w.exercises.length} ejercicios</div>
     </div>
     <div class="wr-right">
       <div class="wr-vol">${vol} kg</div>
-      ${prs > 0 ? `<div class="wr-prs">🏆 ${prs} PR${prs > 1 ? 's' : ''}</div>` : ''}
+      ${prs > 0 ? `<div class="wr-prs">🏆 ${prs}</div>` : ''}
     </div>
   </div>`;
 }
@@ -165,7 +165,7 @@ export function openWorkoutEditor(state, id, templateOverride) {
 
 function workoutEditorHTML(w, state, template) {
   const isDraft = w.status === 'draft';
-  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts) : null;
+  const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts, w.id) : null;
   const sessions = template?.sessions || [];
 
   return `
@@ -425,6 +425,57 @@ function bindEditor(el, state, workoutRef, template) {
         card?.querySelector('.badge-imp')?.classList.toggle('hidden', !isImp);
       });
     });
+
+    // Long press to delete set card
+    el.querySelectorAll('.set-card').forEach(card => {
+      let pressTimer = null;
+      const startPress = (e) => {
+        pressTimer = setTimeout(() => {
+          pressTimer = null;
+          const ei = parseInt(card.dataset.ei), si = parseInt(card.dataset.si);
+          // Show context menu
+          showSetContextMenu(card, ei, si);
+        }, 500);
+      };
+      const cancelPress = () => { if (pressTimer) { clearTimeout(pressTimer); pressTimer = null; } };
+      card.addEventListener('touchstart', startPress, { passive: true });
+      card.addEventListener('touchend', cancelPress);
+      card.addEventListener('touchmove', cancelPress);
+      card.addEventListener('mousedown', startPress);
+      card.addEventListener('mouseup', cancelPress);
+      card.addEventListener('mouseleave', cancelPress);
+    });
+  }
+
+  function showSetContextMenu(card, ei, si) {
+    // Remove any existing menu
+    document.querySelector('.set-context-menu')?.remove();
+    const menu = document.createElement('div');
+    menu.className = 'set-context-menu';
+    menu.innerHTML = `<button class="set-ctx-delete">Borrar serie</button>`;
+    document.body.appendChild(menu);
+
+    // Position near card
+    const rect = card.getBoundingClientRect();
+    menu.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    menu.style.left = (rect.left + window.scrollX) + 'px';
+
+    // Haptic feedback if available
+    navigator.vibrate?.(30);
+
+    menu.querySelector('.set-ctx-delete').addEventListener('click', () => {
+      menu.remove();
+      if (!confirm('¿Borrar esta serie?')) return;
+      const w = getWorkout();
+      w.exercises[ei].sets.splice(si, 1);
+      state.workouts = DataManager.updateWorkout(state.workouts, w);
+      refresh();
+    });
+
+    // Close on outside tap
+    setTimeout(() => {
+      document.addEventListener('click', () => menu.remove(), { once: true });
+    }, 10);
   }
 
   function bindExerciseButtons() {
