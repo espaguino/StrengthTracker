@@ -16,7 +16,7 @@ export const DataManager = {
   // --- Workouts ---
 
   getWorkouts() { return load(KEYS.workouts, []); },
-  saveWorkouts(w) { save(KEYS.workouts, w); },
+  saveWorkouts(w) { save(KEYS.workouts, [...w].sort((a, b) => a.date - b.date)); },
 
   addWorkout(workouts, workout) {
     const updated = [...workouts, workout];
