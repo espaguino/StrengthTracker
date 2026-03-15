@@ -168,14 +168,19 @@ function workoutEditorHTML(w, state, template) {
   const week = w.templateId ? calcCycleWeek(w.templateId, state.workouts, w.id) : null;
   const sessions = template?.sessions || [];
 
+  const d = new Date(w.date);
+  const dateVal = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
   return `
     <div class="editor-header">
-      <button class="back-btn" id="editor-back">‹</button>
+      <button class="back-btn" id="editor-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
       <div class="editor-header-center">
         <div class="editor-title-row">
           <input class="editor-name-input" id="editor-name" value="${w.templateName || w.name}" placeholder="Nombre del entreno">
           ${week ? `<span class="editor-week-badge">Sem. ${week}</span>` : ''}
         </div>
+        <input class="editor-date-input" id="editor-date" type="date" value="${dateVal}" data-dirty="false">
       </div>
       <button class="editor-save-btn" id="editor-save">${isDraft ? 'Finalizar' : 'Guardar'}</button>
     </div>
@@ -312,6 +317,15 @@ function bindEditor(el, state, workoutRef, template) {
     const notes = document.getElementById('editor-notes')?.value.trim();
     if (name) w.name = name;
     w.notes = notes || '';
+    const dateEl = document.getElementById('editor-date');
+    if (dateEl?.value && dateEl.dataset.dirty === 'true') {
+      // Parse local date without timezone shift
+      const [year, month, day] = dateEl.value.split('-').map(Number);
+      const existing = new Date(w.date);
+      const nd = new Date(year, month - 1, day,
+        existing.getHours(), existing.getMinutes(), existing.getSeconds());
+      w.date = nd.getTime();
+    }
     state.workouts = DataManager.updateWorkout(state.workouts, w);
   }
 
@@ -352,6 +366,12 @@ function bindEditor(el, state, workoutRef, template) {
       el.innerHTML = workoutEditorHTML(w, state, template);
       bindEditor(el, state, w, template);
     });
+  });
+
+  // Date — mark dirty only on user change
+  el.querySelector('#editor-date')?.addEventListener('change', (e) => {
+    e.target.dataset.dirty = 'true';
+    saveToState();
   });
 
   // Back
@@ -395,13 +415,25 @@ function bindEditor(el, state, workoutRef, template) {
     if (e.key === 'Enter') el.querySelector('#add-ex-btn').click();
   });
 
-  // Delete
+  // Delete — modal de confirmación
   el.querySelector('#delete-workout-btn')?.addEventListener('click', () => {
-    if (!confirm('¿Borrar este entreno?')) return;
-    state.workouts = DataManager.deleteWorkout(state.workouts, workoutRef.id);
-    leaveEditor();
-    renderWorkouts(state);
-    showToast('Entreno borrado');
+    openModal(`
+      <div style="padding:24px 20px 8px;text-align:center">
+        <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+        <div style="font-size:17px;font-weight:700;margin-bottom:8px">Borrar entreno</div>
+        <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Esta acción no se puede deshacer.</div>
+        <button id="modal-confirm-delete" style="width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">Borrar</button>
+        <button id="modal-cancel-delete" style="width:100%;padding:14px;background:var(--bg3);color:var(--text);border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+      </div>
+    `);
+    document.getElementById('modal-confirm-delete')?.addEventListener('click', () => {
+      closeModal();
+      state.workouts = DataManager.deleteWorkout(state.workouts, workoutRef.id);
+      leaveEditor();
+      renderWorkouts(state);
+      showToast('Entreno borrado');
+    });
+    document.getElementById('modal-cancel-delete')?.addEventListener('click', closeModal);
   });
 
   bindSetInputs();
