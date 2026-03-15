@@ -418,12 +418,14 @@ function bindEditor(el, state, workoutRef, template) {
   // Delete — modal de confirmación
   el.querySelector('#delete-workout-btn')?.addEventListener('click', () => {
     openModal(`
-      <div style="padding:24px 20px 8px;text-align:center">
-        <div style="font-size:32px;margin-bottom:12px">🗑️</div>
-        <div style="font-size:17px;font-weight:700;margin-bottom:8px">Borrar entreno</div>
-        <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Esta acción no se puede deshacer.</div>
-        <button id="modal-confirm-delete" style="width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">Borrar</button>
-        <button id="modal-cancel-delete" style="width:100%;padding:14px;background:var(--bg3);color:var(--text);border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+      <div class="modal-overlay">
+        <div class="modal-sheet" style="padding:24px 20px 20px;text-align:center">
+          <div style="font-size:32px;margin-bottom:12px">🗑️</div>
+          <div style="font-size:17px;font-weight:700;margin-bottom:8px">Borrar entreno</div>
+          <div style="font-size:14px;color:var(--text2);margin-bottom:24px">Esta acción no se puede deshacer.</div>
+          <button id="modal-confirm-delete" style="width:100%;padding:14px;background:var(--red);color:#fff;border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit;margin-bottom:10px">Borrar</button>
+          <button id="modal-cancel-delete" style="width:100%;padding:14px;background:var(--bg3);color:var(--text);border:none;border-radius:12px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>
+        </div>
       </div>
     `);
     document.getElementById('modal-confirm-delete')?.addEventListener('click', () => {
