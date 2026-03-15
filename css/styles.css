@@ -215,10 +215,10 @@ input, textarea, button { font-family: inherit; }
    ============================================================ */
 .back-btn {
   background: none; border: none; color: var(--accent);
-  font-size: 16px; font-weight: 500; cursor: pointer;
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 8px 16px 4px; font-family: inherit;
+  cursor: pointer; display: flex; align-items: center;
+  padding: 4px 8px 4px 4px; flex-shrink: 0;
 }
+.back-btn svg { width: 22px; height: 22px; }
 
 /* ============================================================
    WORKOUT DETAIL
@@ -766,3 +766,12 @@ input, textarea { -webkit-user-select: text; user-select: text; }
   text-align: left; cursor: pointer;
 }
 .set-ctx-delete:active { background: var(--bg3); }
+
+/* Editor date input */
+.editor-date-input {
+  background: none; border: none; outline: none;
+  font-size: 12px; color: var(--text2); font-family: inherit;
+  padding: 0; margin-top: 2px; cursor: pointer;
+  -webkit-appearance: none;
+}
+.editor-date-input::-webkit-date-and-time-value { text-align: left; }
