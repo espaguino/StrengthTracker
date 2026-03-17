@@ -7,6 +7,7 @@ import { StatsEngine } from '../statsEngine.js';
 import { DataManager } from '../dataManager.js';
 import { showToast, openModal, closeModal, setKeyboardHideCallback, clearKeyboardHideCallback } from '../app.js';
 import { emptyState } from './home.js';
+import { switchTab } from '../router.js';
 
 // ============================================================
 // CYCLE/WEEK CALCULATION
@@ -233,7 +234,8 @@ function exerciseSectionHTML(ex, ei, allWorkouts) {
       <span class="ex-title">${ex.name}</span>
       <div class="ex-meta">
         ${plateau ? '<span style="font-size:10px;color:var(--red);font-weight:600">⚠️ Plateau</span>' : ''}
-            ${prevSets.length ? `<button class="btn-eye-ex dim" data-ei="${ei}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>` : ''}
+        ${prevSets.length ? `<button class="btn-eye-ex dim" data-ei="${ei}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>` : ''}
+        <button class="btn-stats-ex" data-name="${ex.name}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></button>
         <button class="btn-collapse-ex" data-ei="${ei}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button>
       </div>
     </div>
@@ -526,8 +528,20 @@ function bindEditor(el, state, workoutRef, template) {
       btn.addEventListener('click', () => {
         const ei = parseInt(btn.dataset.ei);
         const w = getWorkout();
-        const last = w.exercises[ei].sets.slice(-1)[0];
-        w.exercises[ei].sets.push(createSetLog({ weight: last?.weight || '', reps: last?.reps || '' }));
+        const ex = w.exercises[ei];
+        const newSi = ex.sets.length; // index of the set about to be added
+
+        // Try to get same-index set from previous session
+        const prevSets = lastSessionSets(ex.name, state.workouts.filter(x => x.id !== w.id));
+        const prevSet = prevSets[newSi];
+
+        // Fall back to last set of current session
+        const lastCurrent = ex.sets.slice(-1)[0];
+
+        const weight = prevSet?.weight || lastCurrent?.weight || '';
+        const reps   = prevSet?.reps   || lastCurrent?.reps   || '';
+
+        ex.sets.push(createSetLog({ weight, reps }));
         state.workouts = DataManager.updateWorkout(state.workouts, w);
         refresh();
       });
@@ -545,6 +559,18 @@ function bindEditor(el, state, workoutRef, template) {
           const eyeBtn = el.querySelector(`.btn-eye-ex[data-ei="${ei}"]`);
           if (eyeBtn) eyeBtn.classList.add('dim');
         }
+      });
+    });
+
+    // Stats button — navigate to stats tab for this exercise
+    el.querySelectorAll('.btn-stats-ex').forEach(btn => {
+      btn.addEventListener('click', () => {
+        saveToState();
+        // Set selectedExercise in stats module then switch tab
+        import('./stats.js').then(m => {
+          m.setSelectedExercise(btn.dataset.name);
+          switchTab('stats', state);
+        });
       });
     });
 

@@ -6,6 +6,7 @@ import { StatsEngine } from '../statsEngine.js';
 import { emptyState, trendSymbol, trendClass } from './home.js';
 
 let selectedExercise = null;
+export function setSelectedExercise(name) { selectedExercise = name; }
 let chartMode = 'weight';
 let mainChart = null;
 
