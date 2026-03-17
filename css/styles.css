@@ -785,3 +785,47 @@ input, textarea { -webkit-user-select: text; user-select: text; }
 }
 .btn-stats-ex svg { width: 20px; height: 20px; }
 .btn-stats-ex:active { opacity: 0.5; }
+
+/* ============================================================
+   EXERCISE STATS MODAL
+   ============================================================ */
+.ex-stats-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: flex-end;
+  opacity: 0; transition: opacity 0.28s;
+}
+.ex-stats-overlay.open { opacity: 1; }
+.ex-stats-sheet {
+  background: var(--bg2); border-radius: 20px 20px 0 0;
+  width: 100%; max-height: 80vh; overflow-y: auto;
+  padding-bottom: env(safe-area-inset-bottom);
+  transform: translateY(100%);
+  transition: transform 0.28s cubic-bezier(0.32,0.72,0,1);
+}
+.ex-stats-overlay.open .ex-stats-sheet { transform: translateY(0); }
+.ex-stats-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 16px 12px;
+}
+.ex-stats-title { font-size: 17px; font-weight: 700; }
+.ex-stats-close {
+  background: var(--bg3); border: none; cursor: pointer;
+  width: 30px; height: 30px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text2);
+}
+.ex-stats-close svg { width: 16px; height: 16px; }
+.ex-stats-seg {
+  display: flex; gap: 0; margin: 0 16px 12px;
+  background: var(--bg3); border-radius: 10px; padding: 3px;
+}
+.ex-stats-seg .seg-btn {
+  flex: 1; padding: 7px; border-radius: 8px;
+  border: none; background: none; font-size: 13px;
+  font-weight: 500; color: var(--text2); cursor: pointer; font-family: inherit;
+}
+.ex-stats-seg .seg-btn.active {
+  background: var(--bg2); color: var(--text); font-weight: 600;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12);
+}
