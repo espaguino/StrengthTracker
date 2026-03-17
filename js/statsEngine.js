@@ -10,25 +10,25 @@ export const StatsEngine = {
 
   _workoutsFor(name, workouts) {
     return workouts
-      .filter(w => w.status === 'done' && w.exercises.some(e => e.name === name))
+      .filter(w => w.exercises.some(e => e.name === name))
       .sort((a, b) => a.date - b.date);
   },
 
   // --- PR ---
 
   prWeight(name, workouts) {
-    return Math.max(0, ...this._allSets(name, workouts.filter(w => w.status === 'done')).map(s => parseFloat(s.weight) || 0));
+    return Math.max(0, ...this._allSets(name, workouts).map(s => parseFloat(s.weight) || 0));
   },
 
   prReps(name, workouts) {
-    const done = workouts.filter(w => w.status === 'done');
+    const done = workouts;
     const sets = this._allSets(name, done);
     const maxW = this.prWeight(name, workouts);
     return Math.max(0, ...sets.filter(s => parseFloat(s.weight) === maxW).map(s => parseInt(s.reps) || 0));
   },
 
   bestVolume(name, workouts) {
-    return Math.max(0, ...this._allSets(name, workouts.filter(w => w.status === 'done')).map(s => (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0)));
+    return Math.max(0, ...this._allSets(name, workouts).map(s => (parseFloat(s.weight) || 0) * (parseInt(s.reps) || 0)));
   },
 
   isNewPR(weight, reps, name, workouts) {
@@ -95,7 +95,7 @@ export const StatsEngine = {
   },
 
   allNames(workouts) {
-    return [...new Set(workouts.filter(w => w.status === 'done').flatMap(w => w.exercises.map(e => e.name)))].sort();
+    return [...new Set(workouts.flatMap(w => w.exercises.map(e => e.name)))].sort();
   },
 
   sessionCount(name, workouts) {
