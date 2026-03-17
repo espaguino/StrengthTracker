@@ -7,7 +7,6 @@ import { StatsEngine } from '../statsEngine.js';
 import { DataManager } from '../dataManager.js';
 import { showToast, openModal, closeModal, setKeyboardHideCallback, clearKeyboardHideCallback } from '../app.js';
 import { emptyState } from './home.js';
-import { switchTab } from '../router.js';
 
 // ============================================================
 // CYCLE/WEEK CALCULATION
@@ -562,14 +561,11 @@ function bindEditor(el, state, workoutRef, template) {
       });
     });
 
-    // Stats button — navigate to stats tab for this exercise
+    // Stats button — open modal for this exercise
     el.querySelectorAll('.btn-stats-ex').forEach(btn => {
       btn.addEventListener('click', () => {
-        saveToState();
-        // Set selectedExercise in stats module then switch tab
         import('./stats.js').then(m => {
-          m.setSelectedExercise(btn.dataset.name);
-          switchTab('stats', state);
+          m.openExerciseStatsModal(btn.dataset.name, state.workouts);
         });
       });
     });
